@@ -1,17 +1,19 @@
 import numpy
-
+import random
 
 class TicTacToeNN:
-    w1 = numpy.random * .2 - .1
-    w2 = numpy.random * .2 - .1
-    w3 = numpy.random * .2 - .1
-    w4 = numpy.random * .2 - .1
-    w5 = numpy.random * .2 - .1
-    w6 = numpy.random * .2 - .1
-    w7 = numpy.random * .2 - .1
-    w8 = numpy.random * .2 - .1
-    w9 = numpy.random * .2 - .1
-    b = numpy.random * .2 - .1
+
+
+    w1 = random.uniform(0,1) * .2 - .1
+    w2 = random.uniform(0,1) * .2 - .1
+    w3 = random.uniform(0,1) * .2 - .1
+    w4 = random.uniform(0,1) * .2 - .1
+    w5 = random.uniform(0,1) * .2 - .1
+    w6 = random.uniform(0,1) * .2 - .1
+    w7 = random.uniform(0,1) * .2 - .1
+    w8 = random.uniform(0,1) * .2 - .1
+    w9 = random.uniform(0,1) * .2 - .1
+    b = random.uniform(0,1) * .2 - .1
 
     learning_rate = 0.2
 
