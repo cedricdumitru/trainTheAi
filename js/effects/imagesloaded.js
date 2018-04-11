@@ -3,281 +3,273 @@
  * JavaScript is all like "You images are done yet or what?"
  */
 
-( function( window ) {
+(function(window) {
+	"use strict";
 
-'use strict';
+	var $ = window.jQuery;
+	var console = window.console;
+	var hasConsole = typeof console !== "undefined";
 
-var $ = window.jQuery;
-var console = window.console;
-var hasConsole = typeof console !== 'undefined';
+	// -------------------------- helpers -------------------------- //
 
-// -------------------------- helpers -------------------------- //
+	// extend objects
+	function extend(a, b) {
+		for (var prop in b) {
+			a[prop] = b[prop];
+		}
+		return a;
+	}
 
-// extend objects
-function extend( a, b ) {
-  for ( var prop in b ) {
-    a[ prop ] = b[ prop ];
-  }
-  return a;
-}
+	var objToString = Object.prototype.toString;
+	function isArray(obj) {
+		return objToString.call(obj) === "[object Array]";
+	}
 
-var objToString = Object.prototype.toString;
-function isArray( obj ) {
-  return objToString.call( obj ) === '[object Array]';
-}
+	// turn element or nodeList into an array
+	function makeArray(obj) {
+		var ary = [];
+		if (isArray(obj)) {
+			// use object if already an array
+			ary = obj;
+		} else if (typeof obj.length === "number") {
+			// convert nodeList to array
+			for (var i = 0, len = obj.length; i < len; i++) {
+				ary.push(obj[i]);
+			}
+		} else {
+			// array of single index
+			ary.push(obj);
+		}
+		return ary;
+	}
 
-// turn element or nodeList into an array
-function makeArray( obj ) {
-  var ary = [];
-  if ( isArray( obj ) ) {
-    // use object if already an array
-    ary = obj;
-  } else if ( typeof obj.length === 'number' ) {
-    // convert nodeList to array
-    for ( var i=0, len = obj.length; i < len; i++ ) {
-      ary.push( obj[i] );
-    }
-  } else {
-    // array of single index
-    ary.push( obj );
-  }
-  return ary;
-}
+	// --------------------------  -------------------------- //
 
-// --------------------------  -------------------------- //
+	function defineImagesLoaded(EventEmitter, eventie) {
+		/**
+		 * @param {Array, Element, NodeList, String} elem
+		 * @param {Object or Function} options - if function, use as callback
+		 * @param {Function} onAlways - callback function
+		 */
+		function ImagesLoaded(elem, options, onAlways) {
+			// coerce ImagesLoaded() without new, to be new ImagesLoaded()
+			if (!(this instanceof ImagesLoaded)) {
+				return new ImagesLoaded(elem, options);
+			}
+			// use elem as selector string
+			if (typeof elem === "string") {
+				elem = document.querySelectorAll(elem);
+			}
 
-function defineImagesLoaded( EventEmitter, eventie ) {
+			this.elements = makeArray(elem);
+			this.options = extend({}, this.options);
 
-  /**
-   * @param {Array, Element, NodeList, String} elem
-   * @param {Object or Function} options - if function, use as callback
-   * @param {Function} onAlways - callback function
-   */
-  function ImagesLoaded( elem, options, onAlways ) {
-    // coerce ImagesLoaded() without new, to be new ImagesLoaded()
-    if ( !( this instanceof ImagesLoaded ) ) {
-      return new ImagesLoaded( elem, options );
-    }
-    // use elem as selector string
-    if ( typeof elem === 'string' ) {
-      elem = document.querySelectorAll( elem );
-    }
+			if (typeof options === "function") {
+				onAlways = options;
+			} else {
+				extend(this.options, options);
+			}
 
-    this.elements = makeArray( elem );
-    this.options = extend( {}, this.options );
+			if (onAlways) {
+				this.on("always", onAlways);
+			}
 
-    if ( typeof options === 'function' ) {
-      onAlways = options;
-    } else {
-      extend( this.options, options );
-    }
+			this.getImages();
 
-    if ( onAlways ) {
-      this.on( 'always', onAlways );
-    }
+			if ($) {
+				// add jQuery Deferred object
+				this.jqDeferred = new $.Deferred();
+			}
 
-    this.getImages();
+			// HACK check async to allow time to bind listeners
+			var _this = this;
+			setTimeout(function() {
+				_this.check();
+			});
+		}
 
-    if ( $ ) {
-      // add jQuery Deferred object
-      this.jqDeferred = new $.Deferred();
-    }
+		ImagesLoaded.prototype = new EventEmitter();
 
-    // HACK check async to allow time to bind listeners
-    var _this = this;
-    setTimeout( function() {
-      _this.check();
-    });
-  }
+		ImagesLoaded.prototype.options = {};
 
-  ImagesLoaded.prototype = new EventEmitter();
+		ImagesLoaded.prototype.getImages = function() {
+			this.images = [];
 
-  ImagesLoaded.prototype.options = {};
+			// filter & find items if we have an item selector
+			for (var i = 0, len = this.elements.length; i < len; i++) {
+				var elem = this.elements[i];
+				// filter siblings
+				if (elem.nodeName === "IMG") {
+					this.addImage(elem);
+				}
+				// find children
+				var childElems = elem.querySelectorAll("img");
+				// concat childElems to filterFound array
+				for (var j = 0, jLen = childElems.length; j < jLen; j++) {
+					var img = childElems[j];
+					this.addImage(img);
+				}
+			}
+		};
 
-  ImagesLoaded.prototype.getImages = function() {
-    this.images = [];
+		/**
+		 * @param {Image} img
+		 */
+		ImagesLoaded.prototype.addImage = function(img) {
+			var loadingImage = new LoadingImage(img);
+			this.images.push(loadingImage);
+		};
 
-    // filter & find items if we have an item selector
-    for ( var i=0, len = this.elements.length; i < len; i++ ) {
-      var elem = this.elements[i];
-      // filter siblings
-      if ( elem.nodeName === 'IMG' ) {
-        this.addImage( elem );
-      }
-      // find children
-      var childElems = elem.querySelectorAll('img');
-      // concat childElems to filterFound array
-      for ( var j=0, jLen = childElems.length; j < jLen; j++ ) {
-        var img = childElems[j];
-        this.addImage( img );
-      }
-    }
-  };
+		ImagesLoaded.prototype.check = function() {
+			var _this = this;
+			var checkedCount = 0;
+			var length = this.images.length;
+			this.hasAnyBroken = false;
+			// complete if no images
+			if (!length) {
+				this.complete();
+				return;
+			}
 
-  /**
-   * @param {Image} img
-   */
-  ImagesLoaded.prototype.addImage = function( img ) {
-    var loadingImage = new LoadingImage( img );
-    this.images.push( loadingImage );
-  };
+			function onConfirm(image, message) {
+				if (_this.options.debug && hasConsole) {
+					console.log("confirm", image, message);
+				}
 
-  ImagesLoaded.prototype.check = function() {
-    var _this = this;
-    var checkedCount = 0;
-    var length = this.images.length;
-    this.hasAnyBroken = false;
-    // complete if no images
-    if ( !length ) {
-      this.complete();
-      return;
-    }
+				_this.progress(image);
+				checkedCount++;
+				if (checkedCount === length) {
+					_this.complete();
+				}
+				return true; // bind once
+			}
 
-    function onConfirm( image, message ) {
-      if ( _this.options.debug && hasConsole ) {
-        console.log( 'confirm', image, message );
-      }
+			for (var i = 0; i < length; i++) {
+				var loadingImage = this.images[i];
+				loadingImage.on("confirm", onConfirm);
+				loadingImage.check();
+			}
+		};
 
-      _this.progress( image );
-      checkedCount++;
-      if ( checkedCount === length ) {
-        _this.complete();
-      }
-      return true; // bind once
-    }
+		ImagesLoaded.prototype.progress = function(image) {
+			this.hasAnyBroken = this.hasAnyBroken || !image.isLoaded;
+			this.emit("progress", this, image);
+			if (this.jqDeferred) {
+				this.jqDeferred.notify(this, image);
+			}
+		};
 
-    for ( var i=0; i < length; i++ ) {
-      var loadingImage = this.images[i];
-      loadingImage.on( 'confirm', onConfirm );
-      loadingImage.check();
-    }
-  };
+		ImagesLoaded.prototype.complete = function() {
+			var eventName = this.hasAnyBroken ? "fail" : "done";
+			this.isComplete = true;
+			this.emit(eventName, this);
+			this.emit("always", this);
+			if (this.jqDeferred) {
+				var jqMethod = this.hasAnyBroken ? "reject" : "resolve";
+				this.jqDeferred[jqMethod](this);
+			}
+		};
 
-  ImagesLoaded.prototype.progress = function( image ) {
-    this.hasAnyBroken = this.hasAnyBroken || !image.isLoaded;
-    this.emit( 'progress', this, image );
-    if ( this.jqDeferred ) {
-      this.jqDeferred.notify( this, image );
-    }
-  };
+		// -------------------------- jquery -------------------------- //
 
-  ImagesLoaded.prototype.complete = function() {
-    var eventName = this.hasAnyBroken ? 'fail' : 'done';
-    this.isComplete = true;
-    this.emit( eventName, this );
-    this.emit( 'always', this );
-    if ( this.jqDeferred ) {
-      var jqMethod = this.hasAnyBroken ? 'reject' : 'resolve';
-      this.jqDeferred[ jqMethod ]( this );
-    }
-  };
+		if ($) {
+			$.fn.imagesLoaded = function(options, callback) {
+				var instance = new ImagesLoaded(this, options, callback);
+				return instance.jqDeferred.promise($(this));
+			};
+		}
 
-  // -------------------------- jquery -------------------------- //
+		// --------------------------  -------------------------- //
 
-  if ( $ ) {
-    $.fn.imagesLoaded = function( options, callback ) {
-      var instance = new ImagesLoaded( this, options, callback );
-      return instance.jqDeferred.promise( $(this) );
-    };
-  }
+		var cache = {};
 
+		function LoadingImage(img) {
+			this.img = img;
+		}
 
-  // --------------------------  -------------------------- //
+		LoadingImage.prototype = new EventEmitter();
 
-  var cache = {};
+		LoadingImage.prototype.check = function() {
+			// first check cached any previous images that have same src
+			var cached = cache[this.img.src];
+			if (cached) {
+				this.useCached(cached);
+				return;
+			}
+			// add this to cache
+			cache[this.img.src] = this;
 
-  function LoadingImage( img ) {
-    this.img = img;
-  }
+			// If complete is true and browser supports natural sizes,
+			// try to check for image status manually.
+			if (this.img.complete && this.img.naturalWidth !== undefined) {
+				// report based on naturalWidth
+				this.confirm(this.img.naturalWidth !== 0, "naturalWidth");
+				return;
+			}
 
-  LoadingImage.prototype = new EventEmitter();
+			// If none of the checks above matched, simulate loading on detached element.
+			var proxyImage = (this.proxyImage = new Image());
+			eventie.bind(proxyImage, "load", this);
+			eventie.bind(proxyImage, "error", this);
+			proxyImage.src = this.img.src;
+		};
 
-  LoadingImage.prototype.check = function() {
-    // first check cached any previous images that have same src
-    var cached = cache[ this.img.src ];
-    if ( cached ) {
-      this.useCached( cached );
-      return;
-    }
-    // add this to cache
-    cache[ this.img.src ] = this;
+		LoadingImage.prototype.useCached = function(cached) {
+			if (cached.isConfirmed) {
+				this.confirm(cached.isLoaded, "cached was confirmed");
+			} else {
+				var _this = this;
+				cached.on("confirm", function(image) {
+					_this.confirm(image.isLoaded, "cache emitted confirmed");
+					return true; // bind once
+				});
+			}
+		};
 
-    // If complete is true and browser supports natural sizes,
-    // try to check for image status manually.
-    if ( this.img.complete && this.img.naturalWidth !== undefined ) {
-      // report based on naturalWidth
-      this.confirm( this.img.naturalWidth !== 0, 'naturalWidth' );
-      return;
-    }
+		LoadingImage.prototype.confirm = function(isLoaded, message) {
+			this.isConfirmed = true;
+			this.isLoaded = isLoaded;
+			this.emit("confirm", this, message);
+		};
 
-    // If none of the checks above matched, simulate loading on detached element.
-    var proxyImage = this.proxyImage = new Image();
-    eventie.bind( proxyImage, 'load', this );
-    eventie.bind( proxyImage, 'error', this );
-    proxyImage.src = this.img.src;
-  };
+		// trigger specified handler for event type
+		LoadingImage.prototype.handleEvent = function(event) {
+			var method = "on" + event.type;
+			if (this[method]) {
+				this[method](event);
+			}
+		};
 
-  LoadingImage.prototype.useCached = function( cached ) {
-    if ( cached.isConfirmed ) {
-      this.confirm( cached.isLoaded, 'cached was confirmed' );
-    } else {
-      var _this = this;
-      cached.on( 'confirm', function( image ) {
-        _this.confirm( image.isLoaded, 'cache emitted confirmed' );
-        return true; // bind once
-      });
-    }
-  };
+		LoadingImage.prototype.onload = function() {
+			this.confirm(true, "onload");
+			this.unbindProxyEvents();
+		};
 
-  LoadingImage.prototype.confirm = function( isLoaded, message ) {
-    this.isConfirmed = true;
-    this.isLoaded = isLoaded;
-    this.emit( 'confirm', this, message );
-  };
+		LoadingImage.prototype.onerror = function() {
+			this.confirm(false, "onerror");
+			this.unbindProxyEvents();
+		};
 
-  // trigger specified handler for event type
-  LoadingImage.prototype.handleEvent = function( event ) {
-    var method = 'on' + event.type;
-    if ( this[ method ] ) {
-      this[ method ]( event );
-    }
-  };
+		LoadingImage.prototype.unbindProxyEvents = function() {
+			eventie.unbind(this.proxyImage, "load", this);
+			eventie.unbind(this.proxyImage, "error", this);
+		};
 
-  LoadingImage.prototype.onload = function() {
-    this.confirm( true, 'onload' );
-    this.unbindProxyEvents();
-  };
+		// -----  ----- //
 
-  LoadingImage.prototype.onerror = function() {
-    this.confirm( false, 'onerror' );
-    this.unbindProxyEvents();
-  };
+		return ImagesLoaded;
+	}
 
-  LoadingImage.prototype.unbindProxyEvents = function() {
-    eventie.unbind( this.proxyImage, 'load', this );
-    eventie.unbind( this.proxyImage, 'error', this );
-  };
+	// -------------------------- transport -------------------------- //
 
-  // -----  ----- //
-
-  return ImagesLoaded;
-}
-
-// -------------------------- transport -------------------------- //
-
-if ( typeof define === 'function' && define.amd ) {
-  // AMD
-  define( [
-      'eventEmitter',
-      'eventie'
-    ],
-    defineImagesLoaded );
-} else {
-  // browser global
-  window.imagesLoaded = defineImagesLoaded(
-    window.EventEmitter,
-    window.eventie
-  );
-}
-
-})( window );
+	if (typeof define === "function" && define.amd) {
+		// AMD
+		define(["eventEmitter", "eventie"], defineImagesLoaded);
+	} else {
+		// browser global
+		window.imagesLoaded = defineImagesLoaded(
+			window.EventEmitter,
+			window.eventie
+		);
+	}
+})(window);
