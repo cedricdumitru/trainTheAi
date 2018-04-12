@@ -16,21 +16,11 @@ class TicTacToeNN:
     # the step stored needs to be include the list and the move by nn
     # If it has X, the value should be 2. If it has O, the value should be 1. If it has nothing, it should be 0.
     # try catch to throw out the whole thing if error occurs
-
     def sigmoid(self, x):
         return 1 / (1 + numpy.exp(-x))
 
     # do it if nn won the game
-    def train_nn(self, board, nn_move):
-        board_list = []
-        for marker in board:
-            if marker == "X":
-                board_list.append(2)
-            elif marker == "O":
-                board_list.append(1)
-            else:
-                board_list.append(0)
-
+    def train_nn(self, board_list, nn_move):
         target = nn_move
         z = 0
         for number in range(9):
@@ -58,27 +48,17 @@ class TicTacToeNN:
 
     # returning 1,2,3,4,5,6,7,8,9 corresponding the board
     # catch error if nothing returns
-    def make_move(self, board):
-        board_list = []
-
-        for marker in board:
-            if marker == "X":
-                board_list.append(2)
-            elif marker == "O":
-                board_list.append(1)
-            else:
-                board_list.append(0)
-
+    def make_move(self, board_list):
         z = 0
         for number in range(9):
             z += self.w[number] * board_list[number]
         pred = self.sigmoid(z)
-        intended_move = int(numpy.ceil(9.0 * pred))
+        intended_move = numpy.ceil(9.0 * pred)
         if board_list[intended_move - 1] == 0:
             return intended_move
         else:
             for number in (range(1, 9)):
-                if 9 >= number + intended_move >= 1 and board_list[number + intended_move - 1] == 0:
+                if 9 >= number + intended_move >= 1:
                     return number + intended_move
-                if 1 <= intended_move - number <= 9 and board_list[intended_move - number - 1] == 0:
-                    return intended_move - number
+                if 1 <= intended_move - number <= 9:
+                    return intended_move - intended_move
