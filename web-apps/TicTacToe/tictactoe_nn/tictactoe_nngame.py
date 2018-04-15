@@ -1,5 +1,7 @@
 import tictactoe_nn
 
+nn = tictactoe_nn.TicTacToeNN()
+
 def introduce_game():
     print("\n" * 100)
     print("****************\nTic Tac Toe Game\n****************\n")
@@ -55,17 +57,31 @@ def is_tie(board):
 
 def run_game():
     # this part needs to be changed!!!!! create the object somewhere else!!!! this is only for testing purposes!!!!!
-    nn = tictactoe_nn.TicTacToeNN()
+    list_each_board = []
+    each_nnmove = []
 
     introduce_game()
     # if count is even, it's player 1's turn, if it's odd, it's player 2's turn
     count = 0
     board = [""] * 9
-    first_player_marker = input("Player 1: Do you want to be X or O? ").upper()
-    while first_player_marker != "X" and first_player_marker != "O":
-        first_player_marker = input("Please enter either \"X\" or \"O\": ").upper()
+    first_player_marker = input("Player 1: Do you want to go first or second? (first/second) ").upper()
+    while first_player_marker != "FIRST" and first_player_marker != "SECOND":
+        first_player_marker = input("Please enter either \"first\" or \"second\": ").upper()
+    if first_player_marker == "FIRST":
+        first_player_marker = "X"
+    else:
+        first_player_marker = "O"
     second_player_marker = "X" if first_player_marker == "O" else "O"
     while True:
+        if has_o_won(board):
+            count = 0
+            # only for temporary use, add a for loop for testing purposes
+            #for number in range(5000):
+            count = 0
+            for each_board in list_each_board:
+                nn.train_nn(each_board, each_nnmove[count])
+                count += 1
+
         if has_x_won(board):
             print(f"Player X won.")
             break
@@ -84,6 +100,8 @@ def run_game():
                             f"Player {first_player_marker}, choose your position (1 through 9): ")) - 1
                     else:
                         position = nn.make_move(board) - 1
+                        list_each_board.append(board)
+                        each_nnmove.append(nn.make_move(board))
                 except ValueError:
                     print("The position you enter must be an integer.")
                     is_input_error = True
@@ -105,6 +123,8 @@ def run_game():
                 try:
                     if count % 2 == 0:
                         position = nn.make_move(board) - 1
+                        list_each_board.append(board)
+                        each_nnmove.append(position)
                     else:
                         position = int(input(
                             f"Player {second_player_marker}, choose your position (1 through 9): ")) - 1

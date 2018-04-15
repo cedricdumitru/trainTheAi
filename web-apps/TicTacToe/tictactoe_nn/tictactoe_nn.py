@@ -12,6 +12,7 @@ class TicTacToeNN:
 
     learning_rate = 0.2
 
+    count = 0
     # make sure that the game itself stores the order of every step, use the method train_nn() every time after each step
     # the step stored needs to be include the list and the move by nn
     # If it has X, the value should be 2. If it has O, the value should be 1. If it has nothing, it should be 0.
@@ -31,11 +32,11 @@ class TicTacToeNN:
             else:
                 board_list.append(0)
 
-        target = nn_move
+        target = (1 + 2 * (nn_move - 1))/18.0
         z = 0
         for number in range(9):
             z += self.w[number] * board_list[number]
-
+        z += self.b
         pred = self.sigmoid(z)
 
         # cost = (pred - target)**2
@@ -56,6 +57,15 @@ class TicTacToeNN:
             self.w[number] -= self.learning_rate * dcost_dw[number]
         self.b -= self.learning_rate * dcost_db
 
+        self.count += 1
+        print("trained %s times" %self.count)
+        w_count = 0
+        for weight in self.w:
+            w_count += 1
+            print("w%s = %s" %(w_count, weight))
+        print("b = %s" %self.b)
+        print()
+
     # returning 1,2,3,4,5,6,7,8,9 corresponding the board
     # catch error if nothing returns
     def make_move(self, board):
@@ -72,6 +82,7 @@ class TicTacToeNN:
         z = 0
         for number in range(9):
             z += self.w[number] * board_list[number]
+        z += self.b
         pred = self.sigmoid(z)
         intended_move = int(numpy.ceil(9.0 * pred))
         if board_list[intended_move - 1] == 0:
