@@ -16,6 +16,7 @@ We are a couple of high schoolers trying to upgrade our coding skillset and lear
 <li><a href="http://www.github.com/parrot15">Eashan Soni</a> : Java/Python Developer</li>
 <li><a href="http://www.anirudhemmadi.com">Anirudh Emmadi</a> : Web Developer</li>
 </ul>
+
 ## When is it releasing?
 
 FALL 2018
