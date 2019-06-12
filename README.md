@@ -11,7 +11,11 @@ Testing out A.I. functionality in web applications. The whole purpose of this pr
 ## Who are we?
 
 We are a couple of high schoolers trying to upgrade our coding skillset and learn implementing Machine Learning into our code.
+<ul>
+<li><a href="http://www.github.com/SkylerZheng45">Skyler Zheng</a> (FOUNDER) : Python Developer</li>
+<li><a href="http://www.github.com/parrot15">Eashan Soni</a> : Java/Python Developer</li>
+<li><a href="http://www.anirudhemmadi.com">Anirudh Emmadi</a> : Web Developer</li>
 
 ## When is it releasing?
 
-TO BE DECLARED
+FALL 2018
